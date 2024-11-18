@@ -21,6 +21,7 @@ import Animated, {
   useAnimatedStyle,
   useAnimatedScrollHandler,
   withTiming,
+  useDerivedValue,
 } from 'react-native-reanimated';
 import ItemWrapper from './ItemWrapper';
 
@@ -80,36 +81,33 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
   const panAbs = useSharedValue(0);
   const panScroll = useSharedValue(0);
   const panOffset = useSharedValue(0);
+  
+  const zoomOnActive = useSharedValue(1);
 
   const endDrag = (fromIndex: number, toIndex: number) => {
-    const endAnimationDuration = 300
-    panAbs.value = withTiming((toIndex * itemsSize) + (itemsSize / 2) - scroll.value, {
-      duration: endAnimationDuration
-    })
-    setTimeout(() => {
-      const changed = fromIndex !== toIndex;
-      avoidDataUpdate.current = true;
-      if (changed) {
-        const copy = [...data];
-        const removed = copy.splice(fromIndex, 1);
-        copy.splice(toIndex, 0, removed[0]);
-        setData(copy);
-      }
-      panOffset.value = 0;
-      panAbs.value = -1;
-      panScroll.value = 0;
-      activeIndex.value = -1;
-      setActiveIndexState(-1);
-      insertIndex.value = -1;
-      autoScrollSpeed.value = 0;
-      autoScrollAcc.value = 1;
-      setActive(false);
-      fromIndexRef.current = fromIndex;
-      toIndexRef.current = toIndex;
-      if(changed) {
-        setCallOnSort(true);
-      }
-    }, endAnimationDuration + 1)
+    const changed = fromIndex !== toIndex;
+    avoidDataUpdate.current = true;
+    if (changed) {
+      const copy = [...data];
+      const removed = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, removed[0]);
+      setData(copy);
+    }
+    panOffset.value = 0;
+    panAbs.value = -1;
+    panScroll.value = 0;
+    activeIndex.value = -1;
+    setActiveIndexState(-1);
+    insertIndex.value = -1;
+    autoScrollSpeed.value = 0;
+    autoScrollAcc.value = 1;
+    setActive(false);
+    fromIndexRef.current = fromIndex;
+    toIndexRef.current = toIndex;
+    zoomOnActive.value = withTiming(1);
+    if(changed) {
+      setCallOnSort(true);
+    }
   };
   
   useEffect(() => {
@@ -124,6 +122,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
     activeIndex.value = index;
     setActiveIndexState(index);
     setActive(true);
+    zoomOnActive.value = withTiming(1.1);
   }, []);
 
   useEffect(() => {
@@ -139,7 +138,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
                 autoScrollAcc.value,
             animated: false,
           });
-          autoScrollAcc.value = Math.min(6, autoScrollAcc.value + 0.01);
+          autoScrollAcc.value = Math.min(6, autoScrollAcc.value + 0.1);
         }, 16);
       }
     } else {
@@ -162,6 +161,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
     .manualActivation(isIOS)
     .enabled(layout !== null)
     .shouldCancelWhenOutside(false)
+    .onTouchesCancelled(() => runOnJS(setActive)(false))
     .onTouchesMove((_evt, stateManager) => {
       if (!isIOS) return;
       if (active || activeIndexState >= 0 || activeIndex.value >= 0)
@@ -240,6 +240,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
         {
           translateY: panAbs.value - itemsSize / 2,
         },
+        { scale: zoomOnActive.value }
       ],
     };
   }, [itemsSize]);
