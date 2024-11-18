@@ -27,7 +27,7 @@ const ItemWrapper = forwardRef<any, Props>((props, ref) => {
 
   useEffect(() => {
     if(!active && position.value !== 0)
-      position.value = withSpring(0)
+      position.value = 0 // withSpring(0)
   }, [active])
 
   useAnimatedReaction(() => {
