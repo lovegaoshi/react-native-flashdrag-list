@@ -213,8 +213,9 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
   const extraData = useMemo(
     () => ({
       active,
+      ...Object.assign({}, extraData)
     }),
-    [active]
+    [active, ...props.extraData]
   );
 
   const renderItem = ({ item, index }: any) => {
