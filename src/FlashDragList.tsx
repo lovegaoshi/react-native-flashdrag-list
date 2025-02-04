@@ -260,9 +260,10 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
           ref={scrollview}
           data={data}
           renderItem={renderItem}
-          CellRendererComponent={(rowProps) => (
+          CellRendererComponent={(rowProps, ref) => (
             <ItemWrapper
               {...rowProps}
+              ref={ref}
               activeIndex={activeIndex}
               insertIndex={insertIndex}
               height={itemsSize}
