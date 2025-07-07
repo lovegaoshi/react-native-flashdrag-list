@@ -73,8 +73,8 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
   const autoScrollSpeed = useSharedValue(0);
   const autoScrollAcc = useSharedValue(1);
   const scrollInterval = useRef<NodeJS.Timeout | number | null>(null);
-  const fromIndexRef = useRef<number>(-1)
-  const toIndexRef = useRef<number>(-1)
+  const fromIndexRef = useRef<number>(-1);
+  const toIndexRef = useRef<number>(-1);
 
   const panAbs = useSharedValue(0);
   const panScroll = useSharedValue(0);
@@ -106,15 +106,15 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
       setCallOnSort(true);
     }
   };
-  
+
   useEffect(() => {
     if (!callOnSort || fromIndexRef.current < 0 || toIndexRef.current < 0)
-      return
+      return;
     avoidDataUpdate.current = false;
     props.onSort?.(fromIndexRef.current, toIndexRef.current);
     setCallOnSort(false);
-    insertIndex.value = -1; 
-  }, [callOnSort])
+    insertIndex.value = -1;
+  }, [callOnSort]);
 
   const beginDrag = useCallback((index: number) => {
     activeIndex.value = index;
@@ -208,17 +208,20 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
       runOnJS(endDrag)(fromIndex, toIndex);
     });
 
-  const extraData = useMemo(
+  const extraData: any = useMemo(
     () => ({
       active,
-      ...Object.assign({}, extraData)
+      ...Object.assign({}, extraData),
     }),
     [active, ...props.extraData]
   );
 
   const renderItem = ({ item, index }: any) => {
-    return props.renderItem(item, index, active && activeIndex.value === index, () =>
-      beginDrag(index)
+    return props.renderItem(
+      item,
+      index,
+      active && activeIndex.value === index,
+      () => beginDrag(index)
     );
   };
 
@@ -239,7 +242,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
         {
           translateY: panAbs.value - itemsSize / 2,
         },
-        { scale: zoomOnActive.value }
+        { scale: zoomOnActive.value },
       ],
     };
   }, [itemsSize]);
