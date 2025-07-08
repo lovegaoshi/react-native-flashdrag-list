@@ -20,6 +20,7 @@ import Animated, {
   useAnimatedStyle,
   useAnimatedScrollHandler,
   withTiming,
+  SharedValue,
 } from 'react-native-reanimated';
 import ItemWrapper from './ItemWrapper';
 
@@ -37,6 +38,7 @@ type Props = Omit<FlashListProps<any>, 'renderItem'> & {
     beginDrag: () => any
   ) => JSX.Element;
   autoScrollSpeed?: number;
+  startPosition?: SharedValue<number>;
 };
 
 type Layout = {
@@ -149,6 +151,8 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
     scroll.value = event.contentOffset.y;
+    // @ts-expect-error i have no time for games:S
+    props.onScroll && runOnJS(props.onScroll)({ nativeEvent: event });
   });
 
   const onLayout = useCallback((evt: LayoutChangeEvent) => {
@@ -246,6 +250,18 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
       ],
     };
   }, [itemsSize]);
+
+  useEffect(() => {
+    props.startPosition?.value &&
+      setTimeout(
+        () =>
+          scrollview.current?.scrollToOffset({
+            animated: false,
+            offset: props.startPosition?.value!,
+          }),
+        0
+      );
+  }, []);
 
   return (
     <GestureDetector gesture={panGesture}>
