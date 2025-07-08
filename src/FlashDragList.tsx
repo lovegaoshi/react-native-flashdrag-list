@@ -52,6 +52,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
   const { itemsSize } = props;
 
   const [data, setData] = useState(props.data);
+  const [loaded, setLoaded] = useState(false);
   const avoidDataUpdate = useRef(false);
 
   const isIOS = Platform.OS === 'ios';
@@ -153,6 +154,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
     scroll.value = event.contentOffset.y;
     // @ts-expect-error i have no time for games:S
     props.onScroll && runOnJS(props.onScroll)({ nativeEvent: event });
+    !loaded && runOnJS(setLoaded)(true);
   });
 
   const onLayout = useCallback((evt: LayoutChangeEvent) => {
@@ -252,7 +254,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
   }, [itemsSize]);
 
   useEffect(() => {
-    props.startPosition?.value &&
+    if (props.startPosition?.value) {
       setTimeout(
         () =>
           scrollview.current?.scrollToOffset({
@@ -261,6 +263,9 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
           }),
         0
       );
+    } else {
+      setLoaded(true);
+    }
   }, []);
 
   return (
@@ -269,6 +274,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
         onLayout={onLayout}
         style={{
           flex: 1,
+          opacity: loaded ? 1 : 0,
         }}
       >
         <AnimatedFlashList
