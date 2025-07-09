@@ -52,7 +52,6 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
   const { itemsSize } = props;
 
   const [data, setData] = useState(props.data);
-  const [loaded, setLoaded] = useState(false);
   const avoidDataUpdate = useRef(false);
 
   const isIOS = Platform.OS === 'ios';
@@ -63,6 +62,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
   });
 
   const [layout, setLayout] = useState<Layout | null>(null);
+  const loadingOpacity = useSharedValue(0);
 
   const scrollview = useRef<FlashList<any>>(null);
 
@@ -154,7 +154,9 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
     scroll.value = event.contentOffset.y;
     // @ts-expect-error i have no time for games:S
     props.onScroll && runOnJS(props.onScroll)({ nativeEvent: event });
-    !loaded && runOnJS(setLoaded)(true);
+    if (loadingOpacity.value === 0) {
+     loadingOpacity.value = withTiming(1);
+    }
   });
 
   const onLayout = useCallback((evt: LayoutChangeEvent) => {
@@ -264,18 +266,23 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
         0
       );
     } else {
-      setLoaded(true);
+      loadingOpacity.value = 1;
     }
+  }, []);
+
+  const loadingAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: loadingOpacity.value,
+    };
   }, []);
 
   return (
     <GestureDetector gesture={panGesture}>
       <Animated.View
         onLayout={onLayout}
-        style={{
+        style={[{
           flex: 1,
-          opacity: loaded ? 1 : 0,
-        }}
+        }, loadingAnimatedStyle ]}
       >
         <AnimatedFlashList
           {...props}
