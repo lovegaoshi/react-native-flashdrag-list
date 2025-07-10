@@ -20,7 +20,6 @@ import Animated, {
   useAnimatedStyle,
   useAnimatedScrollHandler,
   withTiming,
-  SharedValue,
 } from 'react-native-reanimated';
 import ItemWrapper from './ItemWrapper';
 
@@ -38,7 +37,7 @@ type Props = Omit<FlashListProps<any>, 'renderItem'> & {
     beginDrag: () => any
   ) => JSX.Element;
   autoScrollSpeed?: number;
-  startPosition?: SharedValue<number>;
+  loaded?: boolean;
 };
 
 type Layout = {
@@ -62,7 +61,6 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
   });
 
   const [layout, setLayout] = useState<Layout | null>(null);
-  const loadingOpacity = useSharedValue(0);
 
   const scrollview = useRef<FlashList<any>>(null);
 
@@ -152,11 +150,6 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
     scroll.value = event.contentOffset.y;
-    // @ts-expect-error i have no time for games:S
-    props.onScroll && runOnJS(props.onScroll)({ nativeEvent: event });
-    if (loadingOpacity.value === 0) {
-     loadingOpacity.value = withTiming(1);
-    }
   });
 
   const onLayout = useCallback((evt: LayoutChangeEvent) => {
@@ -255,34 +248,13 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
     };
   }, [itemsSize]);
 
-  useEffect(() => {
-    if (props.startPosition?.value) {
-      setTimeout(
-        () =>
-          scrollview.current?.scrollToOffset({
-            animated: false,
-            offset: props.startPosition?.value!,
-          }),
-        0
-      );
-    } else {
-      loadingOpacity.value = 1;
-    }
-  }, []);
-
-  const loadingAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: loadingOpacity.value,
-    };
-  }, []);
-
   return (
     <GestureDetector gesture={panGesture}>
       <Animated.View
         onLayout={onLayout}
-        style={[{
+        style={{
           flex: 1,
-        }, loadingAnimatedStyle ]}
+        }}
       >
         <AnimatedFlashList
           {...props}
@@ -290,7 +262,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
           ref={scrollview}
           data={data}
           renderItem={renderItem}
-          CellRendererComponent={(rowProps) => (
+          CellRendererComponent={props.loaded === true ? (rowProps) => (
             <ItemWrapper
               {...rowProps}
               activeIndex={activeIndex}
@@ -298,7 +270,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
               height={itemsSize}
               active={active}
             />
-          )}
+          ) : undefined}
           estimatedItemSize={props.estimatedItemSize ?? itemsSize}
           scrollEnabled={(props.scrollEnabled ?? true) && !active}
           onScroll={scrollHandler}
