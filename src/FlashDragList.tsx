@@ -8,7 +8,7 @@ import React, {
   useRef,
 } from 'react';
 import { LayoutChangeEvent, Platform } from 'react-native';
-import { FlashList, FlashListProps } from '@shopify/flash-list';
+import { FlashList, FlashListProps, FlashListRef } from '@shopify/flash-list';
 import {
   GestureDetector,
   Gesture,
@@ -62,7 +62,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
 
   const [layout, setLayout] = useState<Layout | null>(null);
 
-  const scrollview = useRef<FlashList<any>>(null);
+  const scrollview = useRef<FlashListRef<any>>(null);
 
   const activeIndex = useSharedValue(-1);
   const [activeIndexState, setActiveIndexState] = useState(-1);
@@ -271,7 +271,6 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
               active={active}
             />
           ) : undefined}
-          estimatedItemSize={props.estimatedItemSize ?? itemsSize}
           scrollEnabled={(props.scrollEnabled ?? true) && !active}
           onScroll={scrollHandler}
           scrollEventThrottle={16}
