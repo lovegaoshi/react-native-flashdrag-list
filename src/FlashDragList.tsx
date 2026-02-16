@@ -16,11 +16,12 @@ import {
 } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
-  runOnJS,
   useAnimatedStyle,
   useAnimatedScrollHandler,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+
 import ItemWrapper from './ItemWrapper';
 
 // const GestureFlashList = createNativeWrapper(FlashList);
@@ -94,7 +95,6 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
     panOffset.value = 0;
     panScroll.value = 0;
     //panAbs.value = -1;
-    //activeIndex.value = -1;
     setActiveIndexState(-1);
     //insertIndex.value = -1;
     autoScrollSpeed.value = 0;
@@ -115,6 +115,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
     props.onSort?.(fromIndexRef.current, toIndexRef.current);
     setCallOnSort(false);
     insertIndex.value = -1;
+    activeIndex.value = -1;
   }, [callOnSort]);
 
   const beginDrag = useCallback((index: number) => {
@@ -160,7 +161,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
     .manualActivation(isIOS)
     .enabled(layout !== null)
     .shouldCancelWhenOutside(false)
-    .onTouchesCancelled(() => runOnJS(setActive)(false))
+    .onTouchesCancelled(() => scheduleOnRN(setActive, false))
     .onTouchesMove((_evt, stateManager) => {
       if (!isIOS) return;
       if (active || activeIndexState >= 0 || activeIndex.value >= 0)
@@ -181,7 +182,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
       );
     })
     .onUpdate((evt) => {
-      if (activeIndex.value < 0) return;
+      if (activeIndex.value < 0 || !active) return;
       let panAbsValue = Math.max(itemsSize / 2, evt.y);
       if (layout?.height)
         panAbsValue = Math.min(layout.height - itemsSize / 2, panAbsValue);
@@ -206,7 +207,7 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
       if (activeIndex.value < 0) return;
       const fromIndex = activeIndex.value;
       const toIndex = Math.round(insertIndex.value);
-      runOnJS(endDrag)(fromIndex, toIndex);
+      scheduleOnRN(endDrag, fromIndex, toIndex);
     });
 
   const extraData: any = useMemo(
@@ -262,15 +263,19 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
           ref={scrollview}
           data={data}
           renderItem={renderItem}
-          CellRendererComponent={props.loaded === true ? (rowProps) => (
-            <ItemWrapper
-              {...rowProps}
-              activeIndex={activeIndex}
-              insertIndex={insertIndex}
-              height={itemsSize}
-              active={active}
-            />
-          ) : undefined}
+          CellRendererComponent={
+            props.loaded === true
+              ? (rowProps) => (
+                  <ItemWrapper
+                    {...rowProps}
+                    activeIndex={activeIndex}
+                    insertIndex={insertIndex}
+                    height={itemsSize}
+                    active={active}
+                  />
+                )
+              : undefined
+          }
           scrollEnabled={(props.scrollEnabled ?? true) && !active}
           onScroll={scrollHandler}
           scrollEventThrottle={16}
