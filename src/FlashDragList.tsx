@@ -11,8 +11,9 @@ import { LayoutChangeEvent, Platform } from 'react-native';
 import { FlashList, FlashListProps, FlashListRef } from '@shopify/flash-list';
 import {
   GestureDetector,
-  Gesture,
+  usePanGesture,
   ScrollView,
+  GestureStateManager,
 } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -36,7 +37,7 @@ type Props = Omit<FlashListProps<any>, 'renderItem'> & {
     index: number,
     active: boolean,
     beginDrag: () => any
-  ) => JSX.Element;
+  ) => React.JSX.Element;
   autoScrollSpeed?: number;
   loaded?: boolean;
 };
@@ -157,18 +158,18 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
     setLayout(evt.nativeEvent.layout);
   }, []);
 
-  const panGesture = Gesture.Pan()
-    .manualActivation(isIOS)
-    .enabled(layout !== null)
-    .shouldCancelWhenOutside(false)
-    .onTouchesCancelled(() => scheduleOnRN(setActive, false))
-    .onTouchesMove((_evt, stateManager) => {
+  const panGesture = usePanGesture({
+    manualActivation: isIOS,
+    enabled: layout !== null,
+    shouldCancelWhenOutside: false,
+    onTouchesCancel: () => scheduleOnRN(setActive, false),
+    onTouchesMove: (e) => {
       if (!isIOS) return;
       if (active || activeIndexState >= 0 || activeIndex.value >= 0)
-        stateManager.activate();
-      else stateManager.end();
-    })
-    .onBegin((evt) => {
+        GestureStateManager.activate(e.handlerTag);
+      else GestureStateManager.deactivate(e.handlerTag);
+    },
+    onBegin: (evt) => {
       if (activeIndex.value >= 0) return;
       let panAbsValue = Math.max(itemsSize / 2, evt.y);
       if (layout?.height)
@@ -180,8 +181,8 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
         0,
         (scroll.value + panAbs.value) / itemsSize - 0.5
       );
-    })
-    .onUpdate((evt) => {
+    },
+    onUpdate: (evt) => {
       if (activeIndex.value < 0 || !active) return;
       let panAbsValue = Math.max(itemsSize / 2, evt.y);
       if (layout?.height)
@@ -202,14 +203,15 @@ const FlashDragList: FunctionComponent<Props> = (props) => {
         autoScrollAcc.value = 0;
         autoScrollSpeed.value = 0;
       }
-    })
-    .onEnd(() => {
+    },
+    onDeactivate: () => {
       if (activeIndex.value < 0) return;
       const fromIndex = activeIndex.value;
       const toIndex = Math.round(insertIndex.value);
       scheduleOnRN(endDrag, fromIndex, toIndex);
-    });
-
+    }
+  });
+  
   const extraData: any = useMemo(
     () => ({
       active,
